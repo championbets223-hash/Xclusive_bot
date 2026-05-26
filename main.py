@@ -3,7 +3,7 @@ import os
 from pyrogram import Client, filters
 from pyrogram.types import Message
 
-API_ID = int(os.getenv("32374609"))
+API_ID = int(os.getenv("API_ID"))
 API_HASH = os.getenv("856a377f205f826e152f26e8811273ab")
 BOT_TOKEN = os.getenv("8870716064:AAEmirIH2LjcnyRqAxzuQvdXhoCQ-wBE-KQ")
 
