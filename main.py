@@ -8,8 +8,8 @@ API_HASH = os.getenv("API_HASH")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 SOURCE_CHANNEL = int(os.getenv("SOURCE_CHANNEL")) # Channel B ID
-TARGET_CHANNEL = int(os.getenv("-1001331429198"))  # Channel A ID
-WEBSITE_LINK = os.getenv("xclusivelive.netlify.app")           # Your VIP link
+TARGET_CHANNEL = int(os.getenv("TARGET_CHANNEL"))  # Channel A ID
+WEBSITE_LINK = os.getenv("WEBSITE_LINK")           # Your VIP link
 
 app = Client("funnel_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
