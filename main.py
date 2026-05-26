@@ -4,8 +4,8 @@ from pyrogram import Client, filters
 from pyrogram.types import Message
 
 API_ID = int(os.getenv("API_ID"))
-API_HASH = os.getenv("856a377f205f826e152f26e8811273ab")
-BOT_TOKEN = os.getenv("8870716064:AAEmirIH2LjcnyRqAxzuQvdXhoCQ-wBE-KQ")
+API_HASH = os.getenv("API_HASH")
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 SOURCE_CHANNEL = int(os.getenv("SOURCE_CHANNEL")) # Channel B ID
 TARGET_CHANNEL = int(os.getenv("-1001331429198"))  # Channel A ID
