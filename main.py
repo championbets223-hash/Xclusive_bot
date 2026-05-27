@@ -22,7 +22,6 @@ STRIP_TYPES = {
 
 exchange_mode = {}
 
-
 # ─────────────────────────────────────────────
 # Part 1: Forward from Channel B → Channel A
 # ─────────────────────────────────────────────
@@ -33,8 +32,11 @@ async def forward_from_vip(client: Client, message: Message):
         return
 
     clean_text = text
-    if message.entities:
-        for entity in reversed(message.entities):
+
+    # Use caption_entities for photo/video, entities for text
+    entities = message.caption_entities if (message.photo or message.video) else message.entities
+    if entities:
+        for entity in reversed(entities):
             if entity.type in STRIP_TYPES:
                 clean_text = (
                     clean_text[:entity.offset] +
@@ -54,7 +56,6 @@ async def forward_from_vip(client: Client, message: Message):
     except Exception as e:
         print(f"[Forward Error] {e}")
 
-
 # ─────────────────────────────────────────────
 # Part 2: Auto-delete exchange posts on Channel A
 # ─────────────────────────────────────────────
@@ -70,7 +71,6 @@ async def handle_exchange_channel(client: Client, message: Message):
     if exchange_mode.get(TARGET_CHANNEL):
         asyncio.create_task(delete_after_delay(client, message, delay=300))
 
-
 async def delete_after_delay(client: Client, message: Message, delay: int):
     await asyncio.sleep(delay)
     try:
@@ -78,6 +78,5 @@ async def delete_after_delay(client: Client, message: Message, delay: int):
         print(f"[Auto-Delete] Deleted message {message.id} after {delay}s")
     except Exception as e:
         print(f"[Delete Error] {e}")
-
 
 app.run()
