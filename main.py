@@ -12,6 +12,9 @@ SOURCE_CHANNEL = int(os.getenv("SOURCE_CHANNEL"))
 TARGET_CHANNEL = int(os.getenv("TARGET_CHANNEL"))
 WEBSITE_LINK = os.getenv("WEBSITE_LINK")
 
+# ADD THIS LINE - put your ID from @userinfobot here
+ADMIN_ID = 1098654847
+
 app = Client("funnel_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
 STRIP_TYPES = {
@@ -33,7 +36,6 @@ async def forward_from_vip(client: Client, message: Message):
 
     clean_text = text
 
-    # Use caption_entities for photo/video, entities for text
     entities = message.caption_entities if (message.photo or message.video) else message.entities
     if entities:
         for entity in reversed(entities):
@@ -72,6 +74,15 @@ async def handle_exchange_channel(client: Client, message: Message):
         asyncio.create_task(delete_after_delay(client, message, delay=300))
 
 async def delete_after_delay(client: Client, message: Message, delay: int):
+    # SKIP DELETING if message is from admin
+    if message.from_user and message.from_user.id == ADMIN_ID:
+        print(f"[Auto-Delete] Skipped admin message {message.id}")
+        return
+
+    # SKIP DELETING if message is the #exchange command itself
+    if message.text and "#exchange" in message.text.lower():
+        return
+
     await asyncio.sleep(delay)
     try:
         await client.delete_messages(message.chat.id, message.id)
