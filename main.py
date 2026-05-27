@@ -32,11 +32,15 @@ async def forward_from_vip(client: Client, message: Message):
         return
 
     # Replace all links/usernames with your site link
-    clean_text = text
-    if message.entities:
-        for entity in reversed(message.entities):
-            if entity.type in STRIP_TYPES:
-                clean_text = clean_text[:entity.offset] + clean_text[entity.offset + entity.length:]
+clean_text = text
+if message.entities:
+    for entity in reversed(message.entities):
+        if entity.type in STRIP_TYPES:
+            clean_text = (
+                clean_text[:entity.offset] +
+                WEBSITE_LINK +
+                clean_text[entity.offset + entity.length:]
+            )
 
     final_text = clean_text.strip() + f"\n\n🔗 {WEBSITE_LINK}"
 
