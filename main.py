@@ -8,9 +8,9 @@ API_ID = int(os.getenv("API_ID"))
 API_HASH = os.getenv("API_HASH")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
-SOURCE_CHANNEL = int(os.getenv("SOURCE_CHANNEL"))  # Channel B - VIP posts
-TARGET_CHANNEL = int(os.getenv("TARGET_CHANNEL"))  # Channel A - link exchange
-WEBSITE_LINK = os.getenv("WEBSITE_LINK")           # xclusivelive.netlify.app
+SOURCE_CHANNEL = int(os.getenv("SOURCE_CHANNEL"))
+TARGET_CHANNEL = int(os.getenv("TARGET_CHANNEL"))
+WEBSITE_LINK = os.getenv("WEBSITE_LINK")
 
 app = Client("funnel_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
@@ -20,7 +20,8 @@ STRIP_TYPES = {
     enums.MessageEntityType.MENTION,
 }
 
-exchange_mode = {}  # tracks per-channel whether #exchange mode is ON
+exchange_mode = {}
+
 
 # ─────────────────────────────────────────────
 # Part 1: Forward from Channel B → Channel A
@@ -31,16 +32,15 @@ async def forward_from_vip(client: Client, message: Message):
     if not text:
         return
 
-    # Replace all links/usernames with your site link
-clean_text = text
-if message.entities:
-    for entity in reversed(message.entities):
-        if entity.type in STRIP_TYPES:
-            clean_text = (
-                clean_text[:entity.offset] +
-                WEBSITE_LINK +
-                clean_text[entity.offset + entity.length:]
-            )
+    clean_text = text
+    if message.entities:
+        for entity in reversed(message.entities):
+            if entity.type in STRIP_TYPES:
+                clean_text = (
+                    clean_text[:entity.offset] +
+                    WEBSITE_LINK +
+                    clean_text[entity.offset + entity.length:]
+                )
 
     final_text = clean_text.strip() + f"\n\n🔗 {WEBSITE_LINK}"
 
@@ -62,13 +62,11 @@ if message.entities:
 async def handle_exchange_channel(client: Client, message: Message):
     text = message.text or message.caption or ""
 
-    # Detect #exchange separator — turn on exchange mode
     if "#exchange" in text.lower():
         exchange_mode[TARGET_CHANNEL] = True
         print("[Exchange] Exchange mode activated")
-        return  # Don't delete the separator post itself
+        return
 
-    # If exchange mode is ON, schedule deletion after 5 minutes
     if exchange_mode.get(TARGET_CHANNEL):
         asyncio.create_task(delete_after_delay(client, message, delay=300))
 
