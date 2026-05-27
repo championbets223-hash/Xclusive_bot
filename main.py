@@ -1,3 +1,4 @@
+print("DEBUG: Starting")
 import asyncio
 import os
 from pyrogram import Client, filters
