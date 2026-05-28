@@ -130,25 +130,22 @@ async def forward_from_vip(client: Client, message: Message):
 async def handle_exchange_channel(client: Client, message: Message):
     text = (message.text or message.caption or "").lower()
 
-    # Admin activates exchange mode with #exchange
-    if "#exchange" in text and is_admin_post(message):
+    # Anyone can trigger exchange mode with #exchange
+    if "#exchange" in text:
         exchange_mode[TARGET_CHANNEL] = True
         print("[Exchange] Exchange mode ACTIVATED")
-        # Schedule deletion of the #exchange trigger message too (after 5 min)
+        # Also delete the #exchange trigger message itself after 5 min
         asyncio.create_task(delete_after_delay(client, message, delay=300, force=True))
         return
 
-    # Admin deactivates exchange mode with #endexchange
-    if "#endexchange" in text and is_admin_post(message):
+    # Deactivate exchange mode with #endexchange
+    if "#endexchange" in text:
         exchange_mode[TARGET_CHANNEL] = False
         print("[Exchange] Exchange mode DEACTIVATED")
         return
 
-    # If exchange mode is on, schedule deletion of every non-admin post
+    # If exchange mode is on, delete EVERY message — no exceptions
     if exchange_mode.get(TARGET_CHANNEL):
-        if is_admin_post(message):
-            print(f"[Auto-Delete] Skipped admin message {message.id}")
-            return
         print(f"[Auto-Delete] Scheduling deletion of message {message.id} in 300s")
         asyncio.create_task(delete_after_delay(client, message, delay=300))
 
