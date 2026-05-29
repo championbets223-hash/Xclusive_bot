@@ -2,6 +2,8 @@ print("DEBUG: Starting")
 import asyncio
 import os
 import re
+from datetime import datetime, timedelta
+import pytz
 from pyrogram import Client, filters, enums
 from pyrogram.types import Message
 
@@ -13,27 +15,28 @@ SOURCE_CHANNEL = int(os.getenv("SOURCE_CHANNEL"))
 TARGET_CHANNEL = int(os.getenv("TARGET_CHANNEL"))
 WEBSITE_LINK = os.getenv("WEBSITE_LINK", "xclusivelive.netlify.app")
 
+NAIROBI_TZ = pytz.timezone("Africa/Nairobi")
+
 app = Client("funnel_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
 exchange_mode = {}
 
+# ── Auto-reset exchange mode at midnight Nairobi time ────────────────────────
+
+async def midnight_reset():
+    while True:
+        now = datetime.now(NAIROBI_TZ)
+        # Calculate seconds until next midnight
+        tomorrow = (now + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+        wait_seconds = (tomorrow - now).total_seconds()
+        print(f"[Exchange Reset] Will auto-reset in {int(wait_seconds)}s at midnight Nairobi time")
+        await asyncio.sleep(wait_seconds)
+        exchange_mode[TARGET_CHANNEL] = False
+        print("[Exchange Reset] Exchange mode AUTO-RESET at midnight")
+
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-def is_channel_post(message: Message) -> bool:
-    """
-    Returns True if the message was posted AS the channel (not by a user).
-    This covers all admins posting on behalf of the channel.
-    """
-    if message.sender_chat and message.sender_chat.id == TARGET_CHANNEL:
-        return True
-    # Also cover anonymous admin posts
-    if not message.from_user:
-        return True
-    return False
-
-
 def clean_links_and_mentions(text: str, entities) -> str:
-    """Replace all URLs, text-links, and @mentions with WEBSITE_LINK."""
     if not text:
         return text
 
@@ -47,9 +50,8 @@ def clean_links_and_mentions(text: str, entities) -> str:
                             enums.MessageEntityType.MENTION):
                 replacements.append((s, e, WEBSITE_LINK))
             elif ent.type == enums.MessageEntityType.TEXT_LINK:
-                replacements.append((s, e, text[s:e]))  # keep label, drop URL
+                replacements.append((s, e, text[s:e]))
 
-    # Catch raw URLs/mentions Telegram didn't tag as entities
     url_pattern = re.compile(r"(https?://\S+|t\.me/\S+|@\w+)", re.IGNORECASE)
     for m in url_pattern.finditer(text):
         already = any(s <= m.start() < e for s, e, _ in replacements)
@@ -98,31 +100,38 @@ async def forward_from_vip(client: Client, message: Message):
             await client.send_video(TARGET_CHANNEL, message.video.file_id, caption=final_text)
         else:
             await client.send_message(TARGET_CHANNEL, final_text, disable_web_page_preview=False)
-        print(f"[Forward] Sent cleaned message to target channel")
+        print(f"[Forward] Sent to target channel")
     except Exception as e:
         print(f"[Forward Error] {e}")
 
 
-# ── Part 2: Auto-delete exchange posts on TARGET_CHANNEL ─────────────────────
+# ── Part 2: Auto-delete after #exchange on TARGET_CHANNEL ────────────────────
 
 @app.on_message(filters.chat(TARGET_CHANNEL) & ~filters.service)
 async def handle_exchange_channel(client: Client, message: Message):
     text = (message.text or message.caption or "").lower()
 
-    # ── CHANNEL POSTS (any admin posting as the channel): never deleted ──
-    if is_channel_post(message):
-        if "#exchange" in text:
-            exchange_mode[TARGET_CHANNEL] = True
-            print("[Exchange] Exchange mode ACTIVATED")
-        elif "#endexchange" in text:
-            exchange_mode[TARGET_CHANNEL] = False
-            print("[Exchange] Exchange mode DEACTIVATED")
-        return  # channel posts always stop here — never deleted
+    if "#exchange" in text:
+        exchange_mode[TARGET_CHANNEL] = True
+        print("[Exchange] Exchange mode ACTIVATED")
+        return
 
-    # ── USER POSTS (exchange partners posting from personal accounts) ──
+    if "#endexchange" in text:
+        exchange_mode[TARGET_CHANNEL] = False
+        print("[Exchange] Exchange mode DEACTIVATED")
+        return
+
     if exchange_mode.get(TARGET_CHANNEL):
-        print(f"[Auto-Delete] Scheduling deletion of user message {message.id} in 300s")
+        print(f"[Auto-Delete] Scheduling deletion of message {message.id} in 300s")
         asyncio.create_task(delete_after_delay(client, message, delay=300))
 
 
-app.run()
+# ── Start ─────────────────────────────────────────────────────────────────────
+
+async def main():
+    await app.start()
+    asyncio.create_task(midnight_reset())
+    print("Bot is running...")
+    await asyncio.Event().wait()  # run forever
+
+app.loop.run_until_complete(main())
